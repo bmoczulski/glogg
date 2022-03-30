@@ -725,6 +725,26 @@ void CrawlerWidget::setup()
     stopButton->setSizePolicy( QSizePolicy( QSizePolicy::Maximum, QSizePolicy::Maximum ) );
     searchButton->setSizePolicy( QSizePolicy( QSizePolicy::Maximum, QSizePolicy::Maximum ) );
 
+    // Construct the Exclude line
+    excludeLabel = new QLabel(tr("&Exclude: "));
+    excludeLineEdit = new QComboBox;
+    excludeLineEdit->setEditable( true );
+    excludeLineEdit->setCompleter( 0 );
+    // excludeLineEdit->addItems( savedSearches_->recentSearches() );
+    excludeLineEdit->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Minimum );
+    excludeLineEdit->setSizeAdjustPolicy( QComboBox::AdjustToMinimumContentsLengthWithIcon );
+
+    excludeLabel->setBuddy( excludeLineEdit );
+
+    QHBoxLayout* excludeLineLayout = new QHBoxLayout;
+    excludeLineLayout->addWidget(excludeLabel);
+    excludeLineLayout->addWidget(excludeLineEdit);
+    // excludeLineLayout->addWidget(searchButton);
+    // excludeLineLayout->addWidget(stopButton);
+    excludeLineLayout->setContentsMargins(6, 0, 6, 0);
+    // stopButton->setSizePolicy( QSizePolicy( QSizePolicy::Maximum, QSizePolicy::Maximum ) );
+    // searchButton->setSizePolicy( QSizePolicy( QSizePolicy::Maximum, QSizePolicy::Maximum ) );
+
     QHBoxLayout* searchInfoLineLayout = new QHBoxLayout;
     searchInfoLineLayout->addWidget( visibilityBox );
     searchInfoLineLayout->addWidget( searchInfoLine );
@@ -734,6 +754,7 @@ void CrawlerWidget::setup()
     // Construct the bottom window
     QVBoxLayout* bottomMainLayout = new QVBoxLayout;
     bottomMainLayout->addLayout(searchLineLayout);
+    bottomMainLayout->addLayout(excludeLineLayout);
     bottomMainLayout->addLayout(searchInfoLineLayout);
     bottomMainLayout->addWidget(filteredView);
     bottomMainLayout->setContentsMargins(2, 1, 2, 1);
@@ -766,6 +787,10 @@ void CrawlerWidget::setup()
             this, SLOT( startNewSearch() ) );
     connect(stopButton, SIGNAL( clicked() ),
             this, SLOT( stopSearch() ) );
+    connect(excludeLineEdit->lineEdit(), SIGNAL( returnPressed() ),
+            searchButton, SIGNAL( clicked() ));
+    connect(excludeLineEdit->lineEdit(), SIGNAL( textEdited( const QString& ) ),
+            this, SLOT( searchTextChangeHandler() ));
 
     connect(visibilityBox, SIGNAL( currentIndexChanged( int ) ),
             this, SLOT( changeFilteredViewVisibility( int ) ) );
