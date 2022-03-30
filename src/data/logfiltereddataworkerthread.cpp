@@ -240,9 +240,14 @@ void SearchOperation::doSearch( SearchData& searchData, qint64 initialLine )
         LOG(logDEBUG) << "Chunk starting at " << i <<
             ", " << lines.size() << " lines read.";
 
+        bool considerExclude = xregexp_.isValid() && xregexp_.pattern().length() > 0;
         int j = 0;
         for ( ; j < lines.size(); j++ ) {
             if ( sregexp_.match( lines[j] ).hasMatch()) {
+                if (considerExclude && xregexp_.match( lines[j] ).hasMatch()) {
+                    // exclude
+                    continue;
+                }
                 // FIXME: increase perf by removing temporary
                 const int length = sourceLogData_->getExpandedLineString(i+j).length();
                 if ( length > maxLength )
