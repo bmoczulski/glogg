@@ -119,7 +119,7 @@ LogFilteredDataWorkerThread::~LogFilteredDataWorkerThread()
     wait();
 }
 
-void LogFilteredDataWorkerThread::search( const QRegularExpression& regExp )
+void LogFilteredDataWorkerThread::search( const QRegularExpression& sregExp, const QRegularExpression& xregExp )
 {
     QMutexLocker locker( &mutex_ );  // to protect operationRequested_
 
@@ -131,11 +131,11 @@ void LogFilteredDataWorkerThread::search( const QRegularExpression& regExp )
 
     interruptRequested_ = false;
     operationRequested_ = new FullSearchOperation( sourceLogData_,
-            regExp, &interruptRequested_ );
+            sregExp, xregExp, &interruptRequested_ );
     operationRequestedCond_.wakeAll();
 }
 
-void LogFilteredDataWorkerThread::updateSearch(const QRegularExpression &regExp, qint64 position )
+void LogFilteredDataWorkerThread::updateSearch(const QRegularExpression &sregExp, const QRegularExpression& xregExp, qint64 position )
 {
     QMutexLocker locker( &mutex_ );  // to protect operationRequested_
 
@@ -147,7 +147,7 @@ void LogFilteredDataWorkerThread::updateSearch(const QRegularExpression &regExp,
 
     interruptRequested_ = false;
     operationRequested_ = new UpdateSearchOperation( sourceLogData_,
-            regExp, &interruptRequested_, position );
+            sregExp, xregExp, &interruptRequested_, position );
     operationRequestedCond_.wakeAll();
 }
 
@@ -209,8 +209,9 @@ void LogFilteredDataWorkerThread::run()
 //
 
 SearchOperation::SearchOperation( const LogData* sourceLogData,
-        const QRegularExpression& regExp, bool* interruptRequest )
-    : regexp_( regExp ), sourceLogData_( sourceLogData )
+        const QRegularExpression& sregExp,
+        const QRegularExpression& xregExp, bool* interruptRequest )
+    : sregexp_( sregExp ), xregexp_( xregExp ), sourceLogData_( sourceLogData )
 {
     interruptRequested_ = interruptRequest;
 }
@@ -241,7 +242,7 @@ void SearchOperation::doSearch( SearchData& searchData, qint64 initialLine )
 
         int j = 0;
         for ( ; j < lines.size(); j++ ) {
-            if ( regexp_.match( lines[j] ).hasMatch() ) {
+            if ( sregexp_.match( lines[j] ).hasMatch()) {
                 // FIXME: increase perf by removing temporary
                 const int length = sourceLogData_->getExpandedLineString(i+j).length();
                 if ( length > maxLength )

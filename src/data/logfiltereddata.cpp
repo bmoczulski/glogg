@@ -37,6 +37,7 @@
 LogFilteredData::LogFilteredData() : AbstractLogData(),
     matching_lines_(),
     currentRegExp_(),
+    currentExcludeRegExp_(),
     visibility_(),
     filteredItemsCache_(),
     workerThread_( nullptr ),
@@ -56,6 +57,7 @@ LogFilteredData::LogFilteredData( const LogData* logData )
     : AbstractLogData(),
     matching_lines_( SearchResultArray() ),
     currentRegExp_(),
+    currentExcludeRegExp_(),
     visibility_(),
     filteredItemsCache_(),
     workerThread_( logData ),
@@ -93,21 +95,22 @@ LogFilteredData::~LogFilteredData()
 //
 
 // Run the search and send newDataAvailable() signals.
-void LogFilteredData::runSearch( const QRegularExpression& regExp )
+void LogFilteredData::runSearch( const QRegularExpression& sregExp, const QRegularExpression& xregExp )
 {
     LOG(logDEBUG) << "Entering runSearch";
 
     clearSearch();
-    currentRegExp_ = regExp;
+    currentRegExp_ = sregExp;
+    currentExcludeRegExp_ = xregExp;
 
-    workerThread_.search( currentRegExp_ );
+    workerThread_.search( currentRegExp_, currentExcludeRegExp_ );
 }
 
 void LogFilteredData::updateSearch()
 {
     LOG(logDEBUG) << "Entering updateSearch";
 
-    workerThread_.updateSearch( currentRegExp_, nbLinesProcessed_ );
+    workerThread_.updateSearch( currentRegExp_, currentExcludeRegExp_, nbLinesProcessed_ );
 }
 
 void LogFilteredData::interruptSearch()
@@ -120,6 +123,7 @@ void LogFilteredData::interruptSearch()
 void LogFilteredData::clearSearch()
 {
     currentRegExp_ = QRegularExpression();
+    currentExcludeRegExp_ = QRegularExpression();
     matching_lines_.clear();
     maxLength_        = 0;
     nbLinesProcessed_ = 0;

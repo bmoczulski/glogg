@@ -285,7 +285,7 @@ void CrawlerWidget::startNewSearch()
     // Update the SearchLine (history)
     updateSearchCombo();
     // Call the private function to do the search
-    replaceCurrentSearch( searchLineEdit->currentText() );
+    replaceCurrentSearch( searchLineEdit->currentText(), excludeLineEdit->currentText() );
 }
 
 void CrawlerWidget::stopSearch()
@@ -481,7 +481,7 @@ void CrawlerWidget::loadingFinishedHandler( LoadingStatus status )
     if ( searchState_.isAutorefreshAllowed() ) {
         if ( searchState_.isFileTruncated() )
             // We need to restart the search
-            replaceCurrentSearch( searchLineEdit->currentText() );
+            replaceCurrentSearch( searchLineEdit->currentText(), excludeLineEdit->currentText() );
         else
             logFilteredData_->updateSearch();
     }
@@ -865,7 +865,7 @@ void CrawlerWidget::setup()
 
 // Create a new search using the text passed, replace the currently
 // used one and destroy the old one.
-void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
+void CrawlerWidget::replaceCurrentSearch( const QString& searchText, const QString& excludeText )
 {
     // Interrupt the search if it's ongoing
     logFilteredData_->interruptSearch();
@@ -888,19 +888,22 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
     // Update the match overview
     overview_.updateData( logData_->getNbLine() );
 
-    if ( !searchText.isEmpty() ) {
+    if ( !searchText.isEmpty() || !excludeText.isEmpty() ) {
 
-        QString pattern;
+        QString spattern;
+        QString xpattern;
 
         // Determine the type of regexp depending on the config
         static std::shared_ptr<Configuration> config =
             Persistent<Configuration>( "settings" );
         switch ( config->mainRegexpType() ) {
             case FixedString:
-                pattern = QRegularExpression::escape(searchText);
+                spattern = QRegularExpression::escape(searchText);
+                xpattern = QRegularExpression::escape(excludeText);
                 break;
             default:
-                pattern = searchText;
+                spattern = searchText;
+                xpattern = excludeText;
                 break;
         }
 
@@ -913,13 +916,14 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
             patternOptions |= QRegularExpression::CaseInsensitiveOption;
 
         // Constructs the regexp
-        QRegularExpression regexp( pattern, patternOptions );
+        QRegularExpression sregexp( spattern, patternOptions );
+        QRegularExpression xregexp( xpattern, patternOptions );
 
-        if ( regexp.isValid() ) {
+        if ( sregexp.isValid() ) {
             // Activate the stop button
             stopButton->setEnabled( true );
             // Start a new asynchronous search
-            logFilteredData_->runSearch( regexp );
+            logFilteredData_->runSearch( sregexp, xregexp );
             // Accept auto-refresh of the search
             searchState_.startSearch();
         }
@@ -931,13 +935,13 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
 
             // Inform the user
             QString errorMessage = tr("Error in expression");
-            const int offset = regexp.patternErrorOffset();
+            const int offset = sregexp.patternErrorOffset();
             if (offset != -1) {
                 errorMessage += " at position ";
                 errorMessage += QString::number(offset);
             }
             errorMessage += ": ";
-            errorMessage += regexp.errorString();
+            errorMessage += sregexp.errorString();
             searchInfoLine->setPalette( errorPalette );
             searchInfoLine->setText( errorMessage );
         }
