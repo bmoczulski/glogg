@@ -25,7 +25,9 @@
 #include <QCheckBox>
 #include <QLineEdit>
 #include <QHBoxLayout>
+#include <QRegularExpression>
 
+#include "persistentinfo.h"
 #include "configuration.h"
 #include "qfnotifications.h"
 
@@ -111,7 +113,16 @@ void QuickFindWidget::userActivate()
 
 void QuickFindWidget::changeDisplayedPattern( const QString& newPattern )
 {
-    editQuickFind_->setText( newPattern );
+    QString maybeUnescapedNewPattern = newPattern;
+    switch ( Persistent<Configuration>( "settings" )->quickfindRegexpType() ) {
+        case FixedString:
+            maybeUnescapedNewPattern.replace(QRegularExpression("\\\\(.)"), "\\1");
+            break;
+        default:
+            // don't unescape
+            break;
+    }
+    editQuickFind_->setText( maybeUnescapedNewPattern );
 }
 
 void QuickFindWidget::notify( const QFNotification& message )
